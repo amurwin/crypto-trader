@@ -1,0 +1,14 @@
+node_modules
+__pycache__
+*.pyc
+
+# Credentials — never commit
+*.env
+*.env.local
+dashboard/.env
+dashboard-pro/.env.local
+
+# Build output
+dashboard/dist
+dashboard-pro/.next
+dashboard-pro/out

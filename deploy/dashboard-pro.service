@@ -1,0 +1,23 @@
+[Unit]
+Description=Crypto Trader Dashboard Pro (Next.js SSR)
+After=network.target api.service
+Wants=api.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/projects/crypto-trader/dashboard-pro
+
+# Reuses the same encrypted API key credential as api.service — no second secret.
+LoadCredentialEncrypted=api_key:/etc/credstore/api_key.cred
+
+Environment=GRAPHQL_URL=http://localhost:8000/graphql
+Environment=PORT=3001
+
+ExecStart=/usr/bin/pnpm start
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

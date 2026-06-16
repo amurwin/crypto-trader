@@ -1,0 +1,7 @@
+packages:
+  - dashboard
+  - dashboard-pro
+
+allowBuilds:
+  sharp: true
+  unrs-resolver: true

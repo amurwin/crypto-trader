@@ -1,0 +1,62 @@
+type Query {
+  assets(exchange: String): [Asset!]!
+  ohlcv(asset: String!, limit: Int = 200, start: DateTime, end: DateTime): [OhlcvBar!]!
+  trades(asset: String, side: String, limit: Int = 100, since: DateTime): [Trade!]!
+  pnl(since: DateTime): [AssetPnl!]!
+  portfolio: Portfolio!
+}
+
+type Asset {
+  symbol: String!
+  exchange: String!
+}
+
+scalar DateTime
+
+type OhlcvBar {
+  ts: DateTime!
+  open: Float!
+  high: Float!
+  low: Float!
+  close: Float!
+  vol: Float!
+}
+
+type Trade {
+  id: Int!
+  ts: DateTime!
+  asset: String!
+  side: String!
+  price: Float!
+  coins: Float!
+  usd: Float!
+  pnlPct: Float
+  reason: String
+}
+
+type Position {
+  asset: String!
+  coins: Float!
+  entryPrice: Float!
+  entryTime: DateTime!
+  currentPrice: Float!
+  marketValue: Float!
+  unrealizedPnlPct: Float!
+}
+
+type Portfolio {
+  cash: Float!
+  invested: Float!
+  total: Float!
+  positions: [Position!]!
+  asOf: DateTime!
+}
+
+type AssetPnl {
+  asset: String!
+  trades: Int!
+  wins: Int!
+  losses: Int!
+  avgPnlPct: Float!
+  totalPnlPct: Float!
+}

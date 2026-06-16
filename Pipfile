@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+psycopg = {extras = ["binary"], version = "*"}
+psycopg-pool = "*"
+requests = "*"
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+strawberry-graphql = {extras = ["fastapi"], version = "*"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
