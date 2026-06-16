@@ -31,7 +31,7 @@ export default function Trades() {
       <div className="flex gap-3 flex-wrap">
         <input
           className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 w-28"
-          placeholder="Asset (LTC…)"
+          placeholder="Asset (e.g. BTC)"
           value={asset}
           onChange={e => setAsset(e.target.value.toUpperCase())}
         />

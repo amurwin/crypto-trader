@@ -23,7 +23,7 @@ class Exchange(ABC):
 
     @abstractmethod
     def get_price(self, symbol: str) -> float:
-        """Current best price for symbol (e.g. 'LTC')."""
+        """Current best price for symbol (e.g. 'BTC')."""
 
     @abstractmethod
     def get_order_book_asks(self, symbol: str, limit: int = 20) -> list[tuple[float, float]]:
@@ -40,7 +40,7 @@ class Exchange(ABC):
 
     @abstractmethod
     def get_balances(self) -> dict[str, float]:
-        """Free + locked balances. Returns {'USD': x, 'LTC': y, ...}."""
+        """Free + locked balances. Returns {'USD': x, 'BTC': y, ...}."""
 
     @abstractmethod
     def get_recent_trades(self, symbol: str, limit: int = 100) -> list[dict]:
@@ -74,8 +74,8 @@ class Exchange(ABC):
     @abstractmethod
     def symbol_for(self, asset: str) -> str:
         """
-        Convert generic asset name (e.g. 'LTC') to exchange-specific
-        trading pair string (e.g. 'LTCUSD' or 'XLTCZUSD').
+        Convert generic asset name (e.g. 'BTC') to exchange-specific
+        trading pair string (e.g. 'BTCUSD' or 'XXBTZUSD').
         """
 
     @abstractmethod

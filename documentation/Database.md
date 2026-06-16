@@ -10,7 +10,7 @@ The single source of truth for which assets are tradeable and where their data l
 
 | Column | Type | Description |
 |---|---|---|
-| `symbol` | TEXT (PK) | Ticker, e.g. `LTC` |
+| `symbol` | TEXT (PK) | Ticker, e.g. `BTC` |
 | `ohlcv_table` | TEXT | Name of the per-asset candle table holding this asset's OHLCV bars |
 | `exchange` | TEXT | Which exchange adapter (`exchanges/`) this asset trades on |
 | `enabled` | BOOLEAN | Whether this asset is currently active |

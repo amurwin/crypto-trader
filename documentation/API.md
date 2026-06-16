@@ -40,7 +40,7 @@ Same data as REST. POST to `/graphql` with `X-API-Key` header.
   pnl {
     asset trades wins losses avgPnlPct totalPnlPct
   }
-  ohlcv(asset: "LTC", limit: 100) {
+  ohlcv(asset: "BTC", limit: 100) {
     ts open high low close vol
   }
 }
