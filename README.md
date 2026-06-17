@@ -62,3 +62,12 @@ pnpm --filter dashboard-pro dev    # Next.js dashboard
 for production deployment — see the comments in each file and
 `documentation/API.md` for the full setup (encrypted credentials via
 `systemd-creds`, etc).
+
+The CSR dashboard (`dashboard/`) is a static build served by nginx:
+
+```bash
+pnpm --filter dashboard build        # outputs to dashboard/dist/
+cp deploy/dashboard.nginx.conf /etc/nginx/sites-available/dashboard
+ln -s /etc/nginx/sites-available/dashboard /etc/nginx/sites-enabled/
+nginx -s reload
+```
