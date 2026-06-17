@@ -7,19 +7,7 @@ Wants=postgresql.service
 Type=simple
 User=root
 WorkingDirectory=/root/projects/crypto-trader
-
-# Systemd credentials (machine-bound, encrypted at rest)
-# Set up with:
-#   echo -n 'your-api-key'   | systemd-creds encrypt --name=api_key   - api_key.cred
-#   echo -n 'your-db-pass'   | systemd-creds encrypt --name=db_password - db_password.cred
-# Then copy the .cred files to /etc/credstore/ and reference below.
-LoadCredentialEncrypted=api_key:/etc/credstore/api_key.cred
-LoadCredentialEncrypted=db_password:/etc/credstore/db_password.cred
-
-Environment=DB_HOST=<db-host>
-Environment=DB_PORT=5432
-Environment=DB_NAME=crypto_prediction
-Environment=DB_USER=postgres
+EnvironmentFile=/root/projects/crypto-trader/api/.env
 Environment=PYTHONPATH=/root/projects/crypto-trader
 
 ExecStart=/root/.local/share/virtualenvs/crypto-trader-*/bin/uvicorn \

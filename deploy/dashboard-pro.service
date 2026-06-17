@@ -7,11 +7,7 @@ Wants=api.service
 Type=simple
 User=root
 WorkingDirectory=/root/projects/crypto-trader/dashboard-pro
-
-# Reuses the same encrypted API key credential as api.service — no second secret.
-LoadCredentialEncrypted=api_key:/etc/credstore/api_key.cred
-
-Environment=GRAPHQL_URL=http://localhost:8000/graphql
+EnvironmentFile=/root/projects/crypto-trader/dashboard-pro/.env.local
 Environment=PORT=3001
 
 ExecStart=/usr/bin/pnpm start
