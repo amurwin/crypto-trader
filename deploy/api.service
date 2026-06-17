@@ -9,8 +9,9 @@ User=root
 WorkingDirectory=/root/projects/crypto-trader
 EnvironmentFile=/root/projects/crypto-trader/api/.env
 Environment=PYTHONPATH=/root/projects/crypto-trader
+Environment=PIPENV_PIPFILE=/root/projects/crypto-trader/Pipfile
 
-ExecStart=/root/.local/share/virtualenvs/crypto-trader-*/bin/uvicorn \
+ExecStart=pipenv run uvicorn \
     api.main:app \
     --host 0.0.0.0 \
     --port 8000 \
