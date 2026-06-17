@@ -1,73 +1,51 @@
-# React + TypeScript + Vite
+# Dashboard (Vite + React)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Client-rendered trading dashboard. Displays live portfolio positions, P&L summary, price charts, and trade history by polling the REST API.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19, TypeScript, Tailwind CSS
+- Recharts for price/P&L visualisation
+- Vite for dev server and build
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# from the repo root
+pnpm install
 
-## Expanding the ESLint configuration
+# copy and fill in the env file
+cp dashboard/.env.local.example dashboard/.env.local
+# VITE_API_URL — base URL of the running API server (e.g. http://localhost:8000)
+# VITE_API_KEY  — must match the API server's key
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+pnpm --filter dashboard dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Visit `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+> **Note on the API key**: `VITE_API_KEY` is embedded in the client bundle at build time. This is acceptable for an internal tool but not for a public-facing deployment — see [`dashboard-pro/`](../dashboard-pro/) for a server-rendered build that keeps the key out of the browser. See [`documentation/Dashboard.md`](../documentation/Dashboard.md) for a full architectural overview.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Build
+
+```bash
+pnpm --filter dashboard build   # output in dashboard/dist/
 ```
+
+The built `dist/` is a standard static SPA. Serve it behind nginx (see [`deploy/`](../deploy/)) or any static host.
+
+## Components
+
+| Component | What it shows |
+|---|---|
+| `Portfolio` | Open positions with entry price, current price, and unrealised P&L |
+| `PnlSummary` | Realised P&L by asset over a selectable window |
+| `PriceChart` | 5-min OHLCV candlestick / line chart per asset |
+| `Trades` | Live trade history with side, price, USD value, and reason |
+
+All data fetching lives in [`src/api.ts`](src/api.ts) and calls the REST endpoints documented in [`documentation/API.md`](../documentation/API.md).
+
+## Related
+
+- [`dashboard-pro/`](../dashboard-pro/) — SSR/GraphQL version with the API key kept server-side
+- [`documentation/API.md`](../documentation/API.md) — full REST and GraphQL reference

@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dashboard Pro (Next.js SSR + GraphQL)
 
-## Getting Started
+Server-rendered trading dashboard. Extends [`dashboard/`](../dashboard/) with SSR/RSC, GraphQL, per-route error/loading boundaries, and live polling — while keeping the API key out of the browser entirely.
 
-First, run the development server:
+See [`documentation/Dashboard_Pro.md`](../documentation/Dashboard_Pro.md) for a full architectural overview, including how auth differs from `dashboard/` and how the GraphQL proxy route works.
+
+## Stack
+
+- Next.js 15 (App Router, Server Components)
+- Apollo Client (server-side SSR fetch + client-side polling via `/api/graphql` proxy)
+- Tailwind CSS, Recharts
+- TypeScript with generated GraphQL types (`codegen.ts`)
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# from the repo root — installs both dashboard/ and dashboard-pro/ deps at once
+pnpm install
+
+# copy and fill in the env file (server-only — never shipped to the browser)
+cp dashboard-pro/.env.local.example dashboard-pro/.env.local
+# API_KEY must match the running API server's key
+
+pnpm --filter dashboard-pro dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` (redirects to `/portfolio`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd dashboard-pro
+pnpm build
+pnpm start   # listens on PORT env var, default 3001
+```
 
-## Learn More
+Or install the systemd unit:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cp deploy/dashboard-pro.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now dashboard-pro
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The unit reuses the same encrypted credential file as the API service (`/etc/credstore/api_key.cred`) — no second secret to manage. See [`documentation/DASHBOARD_PRO.md`](../documentation/DASHBOARD_PRO.md#production-deployment) for details.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## GraphQL type generation
 
-## Deploy on Vercel
+```bash
+pnpm --filter dashboard-pro codegen
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Regenerate `lib/graphql/` types after changing `schema.graphql` or any `.graphql` query file.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Related
+
+- [`dashboard/`](../dashboard/) — simpler CSR version (Vite + REST)
+- [`documentation/Dashboard_Pro.md`](../documentation/Dashboard_Pro.md) — architecture, auth design, deployment guide
+- [`documentation/API.md`](../documentation/API.md) — REST and GraphQL endpoint reference
