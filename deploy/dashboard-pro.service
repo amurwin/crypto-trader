@@ -10,7 +10,7 @@ WorkingDirectory=/root/projects/crypto-trader/dashboard-pro
 EnvironmentFile=/root/projects/crypto-trader/dashboard-pro/.env.local
 Environment=PORT=3001
 
-ExecStart=/usr/bin/pnpm start
+ExecStart=/usr/local/bin/pnpm start
 
 Restart=always
 RestartSec=10
