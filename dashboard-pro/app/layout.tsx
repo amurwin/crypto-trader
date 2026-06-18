@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
 import { ApolloWrapper } from "../lib/apollo-wrapper";
+import { NavLink } from "../lib/NavLink";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,16 +40,10 @@ export default function RootLayout({
         <ApolloWrapper>
           <header className="border-b border-slate-800">
             <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-8">
-              <span className="font-semibold text-lg">Dashboard Pro</span>
+              <span className="font-semibold tracking-tight text-white">Crypto Trader</span>
               <nav className="flex gap-1">
                 {TABS.map((t) => (
-                  <Link
-                    key={t.href}
-                    href={t.href}
-                    className="px-3 py-1.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                  >
-                    {t.label}
-                  </Link>
+                  <NavLink key={t.href} href={t.href}>{t.label}</NavLink>
                 ))}
               </nav>
             </div>

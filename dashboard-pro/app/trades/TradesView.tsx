@@ -79,8 +79,8 @@ export function TradesView({ initial }: { initial: Trade[] }) {
                     {t.side}
                   </span>
                 </td>
-                <td className="px-4 py-2.5">{fmt(t.price)}</td>
-                <td className="px-4 py-2.5">{t.coins.toFixed(4)}</td>
+                <td className="px-4 py-2.5 w-px whitespace-nowrap">${t.price.toFixed(5)}</td>
+                <td className="px-4 py-2.5 w-px whitespace-nowrap">{t.coins.toFixed(5)}</td>
                 <td className="px-4 py-2.5">{fmt(t.usd)}</td>
                 <td className="px-4 py-2.5">
                   {t.pnlPct != null ? (
