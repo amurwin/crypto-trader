@@ -46,11 +46,19 @@ export interface Position {
   unrealized_pnl_pct:  number
 }
 
+export interface DustBalance {
+  asset:         string
+  coins:         number
+  current_price: number
+  market_value:  number
+}
+
 export interface Portfolio {
   cash:      number
   invested:  number
   total:     number
   positions: Position[]
+  dust:      DustBalance[]
   as_of:     string
 }
 

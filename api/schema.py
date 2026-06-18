@@ -15,7 +15,7 @@ from api.auth import require_api_key
 from api.db import get_pool
 from api import data
 from api.models import (
-    OhlcvBarGql, TradeGql, PositionGql, PortfolioGql, AssetPnlGql, AssetGql,
+    OhlcvBarGql, TradeGql, PositionGql, PortfolioGql, DustBalanceGql, AssetPnlGql, AssetGql,
     OhlcvBar, Trade, AssetPnl, Asset,
 )
 
@@ -108,6 +108,13 @@ class Query:
                     market_value=pos.market_value, unrealized_pnl_pct=pos.unrealized_pnl_pct,
                 )
                 for pos in p.positions
+            ],
+            dust=[
+                DustBalanceGql(
+                    asset=d.asset, coins=d.coins,
+                    current_price=d.current_price, market_value=d.market_value,
+                )
+                for d in p.dust
             ],
         )
 

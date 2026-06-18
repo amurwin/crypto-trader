@@ -5,15 +5,40 @@ Used by both REST routes and GraphQL resolvers.
 
 from __future__ import annotations
 import datetime
+import hashlib
+import hmac
+import os
+import time
 import requests as _requests
 
 import psycopg_pool
 
-from api.models import OhlcvBar, Trade, Position, Portfolio, AssetPnl, Asset
+from api.models import OhlcvBar, Trade, Position, Portfolio, DustBalance, AssetPnl, Asset
 
 FEE_BUY  = 0.0002
 FEE_SELL = 0.0002
-_BINANCE_TICKER = 'https://api.binance.us/api/v3/ticker/price'
+_BINANCE_BASE   = 'https://api.binance.us'
+_BINANCE_TICKER = f'{_BINANCE_BASE}/api/v3/ticker/price'
+
+
+def _binance_balances() -> dict[str, float]:
+    api_key    = os.environ['BINANCE_API_KEY']
+    api_secret = os.environ['BINANCE_API_SECRET']
+    params = {'timestamp': int(time.time() * 1000), 'recvWindow': 15000}
+    qs  = '&'.join(f'{k}={v}' for k, v in sorted(params.items()))
+    sig = hmac.new(api_secret.encode(), qs.encode(), hashlib.sha256).hexdigest()
+    r   = _requests.get(
+        f'{_BINANCE_BASE}/api/v3/account',
+        params=qs + '&signature=' + sig,
+        headers={'X-MBX-APIKEY': api_key},
+        timeout=10,
+    )
+    r.raise_for_status()
+    return {
+        b['asset']: float(b['free']) + float(b['locked'])
+        for b in r.json()['balances']
+        if float(b['free']) + float(b['locked']) > 0
+    }
 
 
 async def fetch_assets(
@@ -142,38 +167,42 @@ async def fetch_portfolio(
     Reconstruct open positions from live_trades: for each asset, find any BUY
     that hasn't been matched by a subsequent SELL.
     """
+    binance = _binance_balances()
+    cash = binance.get('USD', 0.0)
+
     async with pool.connection() as conn:
         rows = await (await conn.execute(
             "SELECT asset, side, price, coins, usd, ts "
             "FROM live_trades ORDER BY ts ASC"
         )).fetchall()
 
-    # Group by asset, walk forward
+    # Group by asset, walk forward to get entry cost/time
     by_asset: dict[str, list] = {}
     for r in rows:
         by_asset.setdefault(r['asset'], []).append(r)
 
     positions: list[Position] = []
+    dust: list[DustBalance]  = []
     total_invested = 0.0
+    position_assets: set[str] = set()
 
     for asset, trades in by_asset.items():
-        held_coins = 0.0
+        held_coins = binance.get(asset, 0.0)
+        if held_coins <= 0:
+            continue
+
         entry_cost = 0.0
         entry_time = None
         for t in trades:
             if t['side'] == 'BUY':
-                held_coins += float(t['coins'])
                 entry_cost += float(t['usd'])
                 if entry_time is None:
                     entry_time = t['ts']
             else:
-                held_coins -= float(t['coins'])
-                entry_cost  = 0.0
-                entry_time  = None
-                if held_coins < 0:
-                    held_coins = 0.0
+                entry_cost = 0.0
+                entry_time = None
 
-        if held_coins <= 0 or entry_cost <= 0:
+        if entry_cost <= 0:
             continue
 
         entry_price  = entry_cost / held_coins
@@ -192,21 +221,26 @@ async def fetch_portfolio(
             unrealized_pnl_pct  = round(pnl_pct, 4),
         ))
         total_invested += market_value
+        position_assets.add(asset)
 
-    # Cash: approximate from trade history (sum of sells minus sum of buys)
-    async with pool.connection() as conn:
-        cash_row = await (await conn.execute(
-            "SELECT "
-            "  COALESCE(SUM(usd) FILTER (WHERE side='SELL'), 0) - "
-            "  COALESCE(SUM(usd) FILTER (WHERE side='BUY'),  0) AS net "
-            "FROM live_trades"
-        )).fetchone()
-    cash = float(cash_row['net']) if cash_row else 0.0
+    for asset, held_coins in binance.items():
+        if asset == 'USD' or asset in position_assets or held_coins <= 0:
+            continue
+        current      = _live_price(asset)
+        market_value = held_coins * current
+        dust.append(DustBalance(
+            asset         = asset,
+            coins         = held_coins,
+            current_price = current,
+            market_value  = round(market_value, 4),
+        ))
+        total_invested += market_value
 
     return Portfolio(
         cash      = round(cash, 2),
         invested  = round(total_invested, 2),
         total     = round(cash + total_invested, 2),
         positions = positions,
+        dust      = sorted(dust, key=lambda d: d.market_value, reverse=True),
         as_of     = datetime.datetime.now(datetime.timezone.utc),
     )

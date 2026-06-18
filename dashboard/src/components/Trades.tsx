@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Trade } from '../api'
 
-const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 5, maximumFractionDigits: 5 })}`
 
 export default function Trades() {
   const [trades, setTrades] = useState<Trade[]>([])
@@ -78,8 +78,8 @@ export default function Trades() {
                       {t.side}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">{fmt(t.price)}</td>
-                  <td className="px-4 py-2.5">{t.coins.toFixed(4)}</td>
+                  <td className="px-4 py-2.5 text-right w-px whitespace-nowrap">${t.price.toFixed(5)}</td>
+                  <td className="px-4 py-2.5 text-right w-px whitespace-nowrap">{t.coins.toFixed(5)}</td>
                   <td className="px-4 py-2.5">{fmt(t.usd)}</td>
                   <td className="px-4 py-2.5">
                     {t.pnl_pct != null

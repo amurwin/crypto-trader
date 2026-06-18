@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@apollo/client/react'
-import { PORTFOLIO_QUERY, type Portfolio } from '../../lib/queries'
+import { PORTFOLIO_QUERY, type Portfolio, type DustBalance } from '../../lib/queries'
 
 const fmt = (n: number) =>
   `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -71,6 +71,33 @@ export function PortfolioView({ initial }: { initial: Portfolio }) {
           <div className="px-5 py-2 text-xs text-slate-500">
             As of {new Date(portfolio.asOf).toLocaleTimeString()}
           </div>
+        </div>
+      )}
+
+      {portfolio.dust.length > 0 && (
+        <div className="bg-slate-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-700 text-sm font-medium text-slate-300">
+            Dust ({portfolio.dust.length})
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-slate-400 border-b border-slate-700">
+                {['Asset', 'Coins', 'Current', 'Value'].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 font-normal">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {portfolio.dust.map((d: DustBalance) => (
+                <tr key={d.asset} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                  <td className="px-5 py-3 font-medium text-white">{d.asset}</td>
+                  <td className="px-5 py-3 text-slate-400">{d.coins.toFixed(6)}</td>
+                  <td className="px-5 py-3 text-slate-400">{fmt(d.currentPrice)}</td>
+                  <td className="px-5 py-3 text-slate-400">{fmt(d.marketValue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

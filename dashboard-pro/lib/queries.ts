@@ -31,11 +31,19 @@ export interface Position {
   unrealizedPnlPct: number
 }
 
+export interface DustBalance {
+  asset: string
+  coins: number
+  currentPrice: number
+  marketValue: number
+}
+
 export interface Portfolio {
   cash: number
   invested: number
   total: number
   positions: Position[]
+  dust: DustBalance[]
   asOf: string
 }
 
@@ -68,6 +76,12 @@ export const PORTFOLIO_QUERY = gql`
         currentPrice
         marketValue
         unrealizedPnlPct
+      }
+      dust {
+        asset
+        coins
+        currentPrice
+        marketValue
       }
     }
   }

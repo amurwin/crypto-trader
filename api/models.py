@@ -80,6 +80,23 @@ class PositionGql:
     unrealized_pnl_pct:  float
 
 
+# ── Dust ──────────────────────────────────────────────────────────────────────
+
+class DustBalance(BaseModel):
+    asset:         str
+    coins:         float
+    current_price: float
+    market_value:  float
+
+
+@strawberry.type
+class DustBalanceGql:
+    asset:         str
+    coins:         float
+    current_price: float
+    market_value:  float
+
+
 # ── Portfolio ─────────────────────────────────────────────────────────────────
 
 class Portfolio(BaseModel):
@@ -87,6 +104,7 @@ class Portfolio(BaseModel):
     invested:       float
     total:          float
     positions:      list[Position]
+    dust:           list[DustBalance]
     as_of:          datetime.datetime
 
 
@@ -96,6 +114,7 @@ class PortfolioGql:
     invested:   float
     total:      float
     positions:  list[PositionGql]
+    dust:       list[DustBalanceGql]
     as_of:      datetime.datetime
 
 

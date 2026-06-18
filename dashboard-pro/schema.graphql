@@ -44,11 +44,19 @@ type Position {
   unrealizedPnlPct: Float!
 }
 
+type DustBalance {
+  asset: String!
+  coins: Float!
+  currentPrice: Float!
+  marketValue: Float!
+}
+
 type Portfolio {
   cash: Float!
   invested: Float!
   total: Float!
   positions: [Position!]!
+  dust: [DustBalance!]!
   asOf: DateTime!
 }
 
