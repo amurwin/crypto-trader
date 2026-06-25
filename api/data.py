@@ -21,22 +21,46 @@ _BINANCE_BASE   = 'https://api.binance.us'
 _BINANCE_TICKER = f'{_BINANCE_BASE}/api/v3/ticker/price'
 
 
-def _binance_balances() -> dict[str, float]:
+def _binance_signed_get(path: str, params: dict) -> dict | list:
     api_key    = os.environ['BINANCE_API_KEY']
     api_secret = os.environ['BINANCE_API_SECRET']
-    params = {'timestamp': int(time.time() * 1000), 'recvWindow': 15000}
+    params['timestamp'] = int(time.time() * 1000)
+    params['recvWindow'] = 15000
     qs  = '&'.join(f'{k}={v}' for k, v in sorted(params.items()))
     sig = hmac.new(api_secret.encode(), qs.encode(), hashlib.sha256).hexdigest()
     r   = _requests.get(
-        f'{_BINANCE_BASE}/api/v3/account',
+        f'{_BINANCE_BASE}{path}',
         params=qs + '&signature=' + sig,
         headers={'X-MBX-APIKEY': api_key},
         timeout=10,
     )
     r.raise_for_status()
+    return r.json()
+
+
+def _binance_my_trades(symbol: str) -> list[dict]:
+    """Fetch all trades for a symbol from Binance, paginating past the 1000-row limit."""
+    all_trades: list[dict] = []
+    from_id: int | None = None
+    while True:
+        params: dict = {'symbol': symbol, 'limit': 1000}
+        if from_id is not None:
+            params['fromId'] = from_id
+        batch = _binance_signed_get('/api/v3/myTrades', params)
+        if not batch:
+            break
+        all_trades.extend(batch)
+        if len(batch) < 1000:
+            break
+        from_id = batch[-1]['id'] + 1
+    return all_trades
+
+
+def _binance_balances() -> dict[str, float]:
+    data = _binance_signed_get('/api/v3/account', {})
     return {
         b['asset']: float(b['free']) + float(b['locked'])
-        for b in r.json()['balances']
+        for b in data['balances']
         if float(b['free']) + float(b['locked']) > 0
     }
 
@@ -132,23 +156,53 @@ async def fetch_pnl_summary(
     pool: psycopg_pool.AsyncConnectionPool,
     since: datetime.datetime | None = None,
 ) -> list[AssetPnl]:
-    where = 'WHERE side = %s' + (' AND ts >= %s' if since else '')
-    params: list = ['SELL']
-    if since:
-        params.append(since)
-    async with pool.connection() as conn:
-        rows = await (await conn.execute(
-            f"SELECT asset, "
-            f"  COUNT(*) AS trades, "
-            f"  COUNT(*) FILTER (WHERE pnl_pct > 0) AS wins, "
-            f"  COUNT(*) FILTER (WHERE pnl_pct <= 0) AS losses, "
-            f"  COALESCE(ROUND(AVG(pnl_pct)::numeric, 4), 0) AS avg_pnl_pct, "
-            f"  COALESCE(ROUND(SUM(pnl_pct)::numeric, 4), 0) AS total_pnl_pct "
-            f"FROM live_trades {where} "
-            f"GROUP BY asset ORDER BY total_pnl_pct DESC",
-            params,
-        )).fetchall()
-    return [AssetPnl(**r) for r in rows]
+    since_ms = int(since.timestamp() * 1000) if since else None
+    assets = await fetch_assets(pool)
+    result: list[AssetPnl] = []
+
+    for asset_obj in assets:
+        symbol = f'{asset_obj.symbol}USD'
+        try:
+            trades = _binance_my_trades(symbol)
+        except Exception:
+            continue
+        if not trades:
+            continue
+
+        # Walk all trades in time order to maintain an average cost basis,
+        # then collect per-sell P&L.  Buys before 'since' still inform cost
+        # basis so filtering is only applied to which sells we report.
+        avg_cost  = 0.0
+        held_qty  = 0.0
+        pnl_list: list[float] = []
+
+        for t in sorted(trades, key=lambda x: x['time']):
+            qty       = float(t['qty'])
+            quote_qty = float(t['quoteQty'])
+            if t['isBuyer']:
+                new_qty  = held_qty + qty
+                avg_cost = (avg_cost * held_qty + quote_qty) / new_qty
+                held_qty = new_qty
+            else:
+                if avg_cost > 0 and (since_ms is None or t['time'] >= since_ms):
+                    sell_price = quote_qty / qty if qty else 0
+                    pnl_list.append((sell_price - avg_cost) / avg_cost * 100)
+                held_qty = max(0.0, held_qty - qty)
+
+        if not pnl_list:
+            continue
+
+        wins  = sum(1 for p in pnl_list if p > 0)
+        result.append(AssetPnl(
+            asset         = asset_obj.symbol,
+            trades        = len(pnl_list),
+            wins          = wins,
+            losses        = len(pnl_list) - wins,
+            avg_pnl_pct   = round(sum(pnl_list) / len(pnl_list), 4),
+            total_pnl_pct = round(sum(pnl_list), 4),
+        ))
+
+    return sorted(result, key=lambda x: x.total_pnl_pct, reverse=True)
 
 
 def _live_price(asset: str) -> float:
