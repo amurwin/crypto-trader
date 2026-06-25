@@ -7,9 +7,11 @@ from __future__ import annotations
 import datetime
 import hashlib
 import hmac
+import json
 import os
 import time
 import requests as _requests
+import redis
 
 import psycopg_pool
 
@@ -19,6 +21,21 @@ FEE_BUY  = 0.0002
 FEE_SELL = 0.0002
 _BINANCE_BASE   = 'https://api.binance.us'
 _BINANCE_TICKER = f'{_BINANCE_BASE}/api/v3/ticker/price'
+
+_redis = redis.Redis(host='127.0.0.1', port=6379, db=0, decode_responses=True)
+
+_TTL_PRICE    = 30   # seconds — one price tick
+_TTL_BALANCES = 10   # seconds — one realtime loop cycle
+_TTL_TRADES   = 10   # seconds — one realtime loop cycle
+
+
+def _cache_get(key: str) -> object | None:
+    raw = _redis.get(key)
+    return json.loads(raw) if raw is not None else None
+
+
+def _cache_set(key: str, value: object, ttl: int) -> None:
+    _redis.setex(key, ttl, json.dumps(value))
 
 
 def _binance_signed_get(path: str, params: dict) -> dict | list:
@@ -40,6 +57,10 @@ def _binance_signed_get(path: str, params: dict) -> dict | list:
 
 def _binance_my_trades(symbol: str) -> list[dict]:
     """Fetch all trades for a symbol from Binance, paginating past the 1000-row limit."""
+    cache_key = f'binance:trades:{symbol}'
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     all_trades: list[dict] = []
     from_id: int | None = None
     while True:
@@ -53,16 +74,22 @@ def _binance_my_trades(symbol: str) -> list[dict]:
         if len(batch) < 1000:
             break
         from_id = batch[-1]['id'] + 1
+    _cache_set(cache_key, all_trades, _TTL_TRADES)
     return all_trades
 
 
 def _binance_balances() -> dict[str, float]:
+    cached = _cache_get('binance:balances')
+    if cached is not None:
+        return cached
     data = _binance_signed_get('/api/v3/account', {})
-    return {
+    result = {
         b['asset']: float(b['free']) + float(b['locked'])
         for b in data['balances']
         if float(b['free']) + float(b['locked']) > 0
     }
+    _cache_set('binance:balances', result, _TTL_BALANCES)
+    return result
 
 
 async def fetch_assets(
@@ -206,10 +233,16 @@ async def fetch_pnl_summary(
 
 
 def _live_price(asset: str) -> float:
+    cache_key = f'binance:price:{asset}'
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         r = _requests.get(_BINANCE_TICKER, params={'symbol': f'{asset}USD'}, timeout=3)
         r.raise_for_status()
-        return float(r.json()['price'])
+        price = float(r.json()['price'])
+        _cache_set(cache_key, price, _TTL_PRICE)
+        return price
     except Exception:
         return 0.0
 

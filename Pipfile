@@ -10,6 +10,7 @@ requests = "*"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 strawberry-graphql = {extras = ["fastapi"], version = "*"}
+redis = "*"
 
 [dev-packages]
 
